@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
       );
     const { name, email, password, username }: RegisterFormData =
       validationResult.data;
-    const [emailExist,usernameExist] = await Promise.all([
-        prisma.user.findUnique({where:{email}}),
-        prisma.user.findUnique({where:{username}})
-    ])
+    const [emailExist, usernameExist] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.user.findUnique({ where: { username } }),
+    ]);
 
     if (emailExist)
       return NextResponse.json(
@@ -44,21 +44,27 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         username,
       },
-      select:{
-        id:true,
-        name:true,
-        email:true,
-        createdAt:true,
-        username:true
-      }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        username: true,
+      },
     });
-    return NextResponse.json({ message: "User created" ,user:newUsser}, { status: 200 });
+    return NextResponse.json(
+      { message: "User created", user: newUsser },
+      { status: 200 }
+    );
   } catch (error) {
-    console.log("Registration Error: ",error);
-    if(error instanceof Error){
-        if(error.message.includes("Unique constraint failed")){
-            return NextResponse.json({message:"Email or username already taken"},{status:409})
-        }
+    console.log("Registration Error: ", error);
+    if (error instanceof Error) {
+      if (error.message.includes("Unique constraint failed")) {
+        return NextResponse.json(
+          { message: "Email or username already taken" },
+          { status: 409 }
+        );
+      }
     }
     return NextResponse.json(
       { message: "Internal Server Error" },
