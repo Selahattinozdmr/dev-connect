@@ -7,14 +7,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    const session: Session | null = await  auth();
+    const session: Session | null = await auth();
     if (!session || !session.user?.email) {
       return NextResponse.json(
         { message: "Unauthorized access" },
         { status: 401 }
       );
     }
-    console.log("session",session);
+    console.log("session", session);
     const userSelect: Prisma.UserSelect = {
       id: true,
       name: true,

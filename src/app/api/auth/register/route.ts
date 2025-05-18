@@ -6,8 +6,8 @@ import bcrypt from "bcrypt";
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const rawFormData: Record<string, FormDataEntryValue> =
-      Object.fromEntries(formData);
+  const rawFormData: Record<string, FormDataEntryValue> =
+    Object.fromEntries(formData);
 
     const validationResult = registerSchema.safeParse(rawFormData);
     if (!validationResult.success)

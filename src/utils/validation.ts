@@ -11,3 +11,30 @@ export const registerSchema= z.object({
 })
 
 export type RegisterFormData=z.infer<typeof registerSchema>
+
+
+export const QuerySchema= z.object({
+    page:z.coerce.number().int().positive().optional().default(1),
+    limit:z.coerce.number().int().positive().optional().default(10),
+    sortBy:z.enum(["name","username","createdAt"]).optional().default("createdAt"),
+    sortOrder:z.enum(["asc","desc"]).optional().default("desc"),
+    search:z.string().optional()
+})
+
+export type QueryParams=z.infer<typeof QuerySchema>
+
+export const UserSchema=z.object({
+    id:z.string(),
+    name:z.string(),
+    username:z.string(),
+    email:z.string().email("Invalid email address"),
+    bio:z.string().optional(),
+    avatarUrl:z.string().optional(),
+    location:z.string().optional(),
+    website:z.string().optional(),
+    githubUrl:z.string().optional(),
+    linkedinUrl:z.string().optional(),
+    createdAt:z.coerce.date(),
+    updatedAt:z.coerce.date()
+})
+export type UserType=z.infer<typeof UserSchema>
