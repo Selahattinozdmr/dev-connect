@@ -3,72 +3,69 @@ import { prisma } from "@/utils/prisma";
 import { QueryParams, QuerySchema } from "@/utils/validation";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, User } from "@prisma/client";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  requireAuth,
+} from "@/utils/api-helpers";
+import {
+  buildUserSearchConditions,
+  createPaginationMeta,
+  getPaginationParams,
+} from "@/utils/search-helpers";
 
-interface UsersResponse {
+/**
+ * Retrieves a paginated list of users with optional filtering and sorting
+ * @param req - The Next.js request object containing search parameters
+ * @returns A JSON response with paginated user data or an error message
+ *
+ * @example
+ * // Example query parameters
+ * // /api/users?page=1&limit=10&search=john&sortBy=createdAt&sortOrder=desc
+ *
+ * // Query parameters:
+ * // - page: Page number (default: 1)
+ * // - limit: Items per page (default: 10)
+ * // - search: Search term for name, username, or email
+ * // - sortBy: Field to sort by (default: createdAt)
+ * // - sortOrder: Sort order, 'asc' or 'desc' (default: desc)
+ */
+
+type UsersResponse = {
   users: Array<Partial<User>>;
-  meta: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  };
-}
-interface ErrorResponse {
-  message: string;
-  errors?: Record<string, string[]>;
-}
-
-type UserFilterOptions = {
-  role?: string;
-  isActive?: boolean;
-  joinedAfter?: String;
-  joinedBefore?: String;
+  meta: ReturnType<typeof createPaginationMeta>;
 };
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
-    const url = new URL(req.url);
+    // const authError = requireAuth(session);
+    // if (authError) return authError;
+
+    const url: URL = new URL(req.url);
+
     const rawParams = Object.fromEntries(url.searchParams.entries());
     const validationResult = QuerySchema.safeParse(rawParams);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          message: "Invalid query parameters",
-          errors: validationResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
+      return createErrorResponse(
+        "Invalid query parameters",
+        validationResult.error.flatten().fieldErrors,
+        400
       );
     }
 
     const { page, limit, sortBy, sortOrder, search }: QueryParams =
       validationResult.data;
 
-    const skip = (page - 1) * limit;
-    let where: Prisma.UserWhereInput = {};
-    if (search) {
-      where = {
-        OR: [
-          { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
-          {
-            username: {
-              contains: search,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          },
-          { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        ],
-      };
-    }
+    const where = buildUserSearchConditions(search as string);
+    const { skip, take } = getPaginationParams(page, limit);
 
     const [users, totalCount] = await Promise.all([
       prisma.user.findMany({
         where,
         skip,
-        take: limit,
+        take,
         orderBy: {
           [sortBy]: sortOrder,
         },
@@ -85,35 +82,36 @@ export async function GET(req: NextRequest) {
       prisma.user.count({ where }),
     ]);
     if (!users || (users.length === 0 && page > 1)) {
-      return NextResponse.json({ message: "No users found" }, { status: 404 });
+      return createErrorResponse("No users found", "No users found", 404);
     }
 
-    const totalPages = Math.ceil(totalCount / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    const meta = createPaginationMeta(page, limit, totalCount);
 
+    // Add dynamic cache control based on user authentication
     const headers = new Headers();
-    headers.set("Cache-Control", "public,max-age=30,stale-while-revalidate=60");
+    const cacheControl = session
+      ? "private, max-age=10, stale-while-revalidate=30"
+      : "public, max-age=60, stale-while-revalidate=300";
 
-    return NextResponse.json(
+    headers.set("Cache-Control", cacheControl);
+
+    return createSuccessResponse<UsersResponse>(
       {
         users,
-        meta: {
-          page,
-          limit,
-          totalCount,
-          totalPages,
-          hasNextPage,
-          hasPrevPage,
-        },
+        meta,
       },
-      { status: 200 }
+      "Users fetched successfully",
+      200
     );
   } catch (error) {
     console.error("API Error in GET /api/users: ", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return createErrorResponse("Database error", error.message, 400);
+    }
+    return createErrorResponse(
+      "Internal server error",
+      { server: ["Internal server error"] },
+      500
     );
   }
 }

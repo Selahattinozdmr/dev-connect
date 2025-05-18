@@ -2,42 +2,40 @@ import { prisma } from "@/utils/prisma";
 import { RegisterFormData, registerSchema } from "@/utils/validation";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { validateFormData } from "@/utils/validation-helpers";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/utils/api-helpers";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const formData = await req.formData();
-  const rawFormData: Record<string, FormDataEntryValue> =
-    Object.fromEntries(formData);
+    const validation = await validateFormData(formData, registerSchema);
 
-    const validationResult = registerSchema.safeParse(rawFormData);
-    if (!validationResult.success)
-      return NextResponse.json(
-        {
-          message: "Validation failed",
-          erros: validationResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
+    if (!validation.success) {
+      return validation.response;
+    }
     const { name, email, password, username }: RegisterFormData =
-      validationResult.data;
-    const [emailExist, usernameExist] = await Promise.all([
-      prisma.user.findUnique({ where: { email } }),
-      prisma.user.findUnique({ where: { username } }),
-    ]);
+      validation.data;
 
-    if (emailExist)
-      return NextResponse.json(
-        { message: "Email already in use" },
-        { status: 400 }
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { username }],
+      },
+    });
+
+    if (existingUser) {
+      return createErrorResponse(
+        "User already exists",
+        { field: existingUser.email === email ? "email" : "username" },
+        409
       );
-    if (usernameExist)
-      return NextResponse.json(
-        { message: "Username already taken" },
-        { status: 400 }
-      );
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const newUsser = await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name,
         email,
@@ -52,23 +50,26 @@ export async function POST(req: NextRequest) {
         username: true,
       },
     });
-    return NextResponse.json(
-      { message: "User created", user: newUsser },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.log("Registration Error: ", error);
+    return createSuccessResponse(newUser, "User created successfully", 201);
+  } catch (error: unknown) {
+    console.error("Registration Error: ", error);
     if (error instanceof Error) {
       if (error.message.includes("Unique constraint failed")) {
-        return NextResponse.json(
-          { message: "Email or username already taken" },
-          { status: 409 }
+        return createErrorResponse(
+          "Email or username already taken",
+          { conflict: true }, // Don't expose raw error message
+          409
         );
       }
+
+      // Log detailed error but return safe message
+      console.error(`Registration error details: ${error.stack}`);
     }
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
+
+    return createErrorResponse(
+      "Internal Server Error",
+      { server: ["Internal server error"] },
+      500
     );
   }
 }
