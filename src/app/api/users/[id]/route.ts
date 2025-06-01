@@ -158,3 +158,61 @@ export async function PUT(
     );
   }
 }
+
+const USER_SELECT_FIELDS = {
+  id: true,
+  name: true,
+  email: true,
+  username: true,
+  bio: true,
+  avatarUrl: true,
+  location: true,
+  website: true,
+  githubUrl: true,
+  linkedinUrl: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+export async function DELETE(
+  req: NextRequest,
+  params: { id: string }
+): Promise<NextResponse> {
+  try {
+    const session = await auth();
+    const authError = requireAuth(session);
+
+    if (authError) return authError;
+
+    const userId = (await params).id;
+
+    const ownershipError = verifyOwnership(session?.user?.id, userId);
+    if (ownershipError) return ownershipError;
+
+    const deletedUser = await prisma.user.delete({
+      where: { id: userId },
+      select: USER_SELECT_FIELDS,
+    });
+
+    return createSuccessResponse(deletedUser, "User deleted successfully", 204);
+  } catch (error) {
+    console.error("Error deleting user:", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2025") {
+        return createErrorResponse(
+          "User not found",
+          "Record to delete does not exist",
+          404
+        );
+      }
+      return createErrorResponse("Database error", error.message, 400);
+    }
+
+    return createErrorResponse(
+      "Error deleting user",
+      { server: ["Internal server error"] },
+      500
+    );
+  }
+}
