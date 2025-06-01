@@ -20,7 +20,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
           },
           "name": {
             "type": "string"
@@ -65,7 +66,14 @@
             "format": "date-time"
           }
         },
-        "required": ["id", "name", "email", "username", "createdAt", "updatedAt"]
+        "required": [
+          "id",
+          "name",
+          "email",
+          "username",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "ApiResponse": {
         "type": "object",
@@ -117,6 +125,18 @@
         "required": ["success", "error", "status"]
       }
     },
+    "parameters": {
+      "userIdParam": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "User ID (UUID format)",
+        "example": "cmas2xbuy0000tf8cp8h37lgl"
+      }
+    },
     "securitySchemes": {
       "cookieAuth": {
         "type": "apiKey",
@@ -131,6 +151,113 @@
     }
   ],
   "paths": {
+    "/auth/register":{
+      "post": {
+        "summary": "Create new user",
+        "description": "Create a new user account (typically handled by Auth.js)",
+        "tags": ["Users"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+           "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                  },
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "Password123!"
+                  },
+                  "bio": {
+                    "type": "string",
+                    "example": "Full-stack developer passionate about TypeScript"
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "User profile image"
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "San Francisco, CA"
+                  },
+                  "website": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "githubUrl": {
+                    "type": "string",
+                    "example": "https://github.com/johndoe"
+                  },
+                  "linkedinUrl": {
+                    "type": "string",
+                    "example": "https://linkedin.com/in/johndoe"
+                  }
+                },
+                "required": ["name", "email", "username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/User"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email or username already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/me": {
       "get": {
         "summary": "Get current user profile",
@@ -180,6 +307,115 @@
         }
       }
     },
+    "/users": {
+      "get": {
+        "summary": "Get all users",
+        "tags": ["Users"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            },
+            "description": "Number of users per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term to filter users by name, username, or email"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "users": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/User"
+                              }
+                            },
+                            "pagination": {
+                              "type": "object",
+                              "properties": {
+                                "total": {
+                                  "type": "integer",
+                                  "description": "Total number of users"
+                                },
+                                "pages": {
+                                  "type": "integer",
+                                  "description": "Total number of pages"
+                                },
+                                "page": {
+                                  "type": "integer",
+                                  "description": "Current page number"
+                                },
+                                "limit": {
+                                  "type": "integer",
+                                  "description": "Number of users per page"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/{id}": {
       "get": {
         "summary": "Get user by ID",
@@ -190,8 +426,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],
@@ -238,9 +473,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+              "type": "string"            }
           }
         ],
         "requestBody": {
@@ -249,6 +482,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "User ID (UUID format)",
+                    "example": "cmas2xbuy0000tf8cp8h37lgl"
+                  },
                   "name": {
                     "type": "string"
                   },
@@ -335,8 +573,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],

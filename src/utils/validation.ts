@@ -34,7 +34,7 @@ export const UserSchema=z.object({
     website:z.string().optional(),
     githubUrl:z.string().optional(),
     linkedinUrl:z.string().optional(),
-    createdAt:z.coerce.date(),
-    updatedAt:z.coerce.date()
+    createdAt:z.coerce.date().optional(),
+    updatedAt:z.coerce.date().optional()
 })
 export type UserType=z.infer<typeof UserSchema>

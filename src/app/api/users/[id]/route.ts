@@ -80,11 +80,16 @@ export async function PUT(
     const authError = requireAuth(session);
     if (authError) return authError;
 
+   
+
     const userId = (await params).id;
+    console.log("userID",userId)
 
     // At this point we know session is not null because requireAuth would have returned an error
-    const ownershipError = verifyOwnership(session!.user?.id, userId);
+    const ownershipError = verifyOwnership(session!.user?.id, userId, session!.user?.role);
     if (ownershipError) return ownershipError;
+    
+  
 
     const formData = await req.formData();
     const validation = await validateFormData(formData, UserSchema);
@@ -176,7 +181,7 @@ const USER_SELECT_FIELDS = {
 
 export async function DELETE(
   req: NextRequest,
-  params: { id: string }
+  { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
     const session = await auth();
@@ -186,7 +191,7 @@ export async function DELETE(
 
     const userId = (await params).id;
 
-    const ownershipError = verifyOwnership(session?.user?.id, userId);
+    const ownershipError = verifyOwnership(session!.user?.id, userId, session!.user?.role);
     if (ownershipError) return ownershipError;
 
     const deletedUser = await prisma.user.delete({
@@ -194,7 +199,7 @@ export async function DELETE(
       select: USER_SELECT_FIELDS,
     });
 
-    return createSuccessResponse(deletedUser, "User deleted successfully", 204);
+    return createSuccessResponse(deletedUser,"User deleted successfully", 200);
   } catch (error) {
     console.error("Error deleting user:", error);
 

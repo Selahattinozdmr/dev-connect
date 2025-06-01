@@ -3,6 +3,24 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/utils/prisma";
 import { encode as defaultEncode } from "@auth/core/jwt";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcrypt";
+
+// Extend the User type to include the role property
+declare module "next-auth" {
+  interface User {
+    role?: string;
+  }
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      role?: string | null;
+      image?: string | null;
+      emailVerified?: Date | null;
+    }
+  }
+}
 
 class InvalidLoginError extends CredentialsSignin {
   code = "Invalid identifier or password";
@@ -23,13 +41,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         user = await prisma.user.findUnique({
           where: {
             email: credentials.email as string,
-            password: credentials.password as string,
           },
         });
-
-        if (!user) {
-          // No user found, so this is their first attempt to login
-          // Optionally, this is also the place you could do a user registration
+        const isPasswordValid = bcrypt.compareSync(credentials.password as string, user?.password || "");
+        if (!user || !isPasswordValid) {
+          // If no user is found or password is invalid, throw an error
           throw new InvalidLoginError();
         }
 
@@ -38,6 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,
           image: user.avatarUrl,
         };
       },
@@ -50,6 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         id: user.id,
         name: user.name,
         email: user.email,
+        role: user.role,
         image: user.image,
         emailVerified: user.emailVerified,
       };

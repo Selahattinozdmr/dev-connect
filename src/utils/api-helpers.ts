@@ -45,9 +45,10 @@ export const requireAuth = (session: Session | null): NextResponse | null => {
 
 export const verifyOwnership = (
   sessionUserId: string | undefined,
-  resourceOwnerId: string
+  resourceOwnerId: string,
+  resourceRole?: string | null
 ): NextResponse | null => {
-  if (!sessionUserId || sessionUserId !== resourceOwnerId) {
+  if (!sessionUserId || (sessionUserId !== resourceOwnerId && (!resourceRole || resourceRole !== "ADMIN"))) {
     return createErrorResponse(
       "Forbidden",
       "You do not have permission to perform this action",

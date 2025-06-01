@@ -26,6 +26,7 @@ model User {
   website       String?
   githubUrl     String?
   linkedinUrl   String?
+  role          String    @default("USER") // USER, ADMIN, etc.
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   projects      Project[] 
