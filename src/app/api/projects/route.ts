@@ -92,7 +92,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-
 /**
  * POST /api/projects
  *
@@ -107,10 +106,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
  * @param {string} [req.formData.repoUrl] - URL to the project repository (optional)
  * @param {string} [req.formData.liveUrl] - URL to the live project (optional)
  * @param {string[]} [req.formData.tags] - Array of technology tags associated with the project
- * 
+ *
  * @throws {Error} When authentication fails or database operation fails
  * @throws {Prisma.PrismaClientKnownRequestError} When a database constraint is violated (e.g., unique title)
- * 
+ *
  * @returns {Promise<NextResponse>} JSON response with created project data or error message
  * @returns {201} Project created successfully with project data
  * @returns {400} Validation error with specific field errors
@@ -119,7 +118,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
  * @returns {500} Server error if project creation fails for other reasons
  */
 
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
@@ -127,13 +125,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (authError) return authError;
 
     const formData = await req.formData();
+
+    // Special handling for tags - convert from string to array if needed
+    const tagsValue = formData.get("tags");
+    if (tagsValue && typeof tagsValue === "string" && tagsValue.includes(",")) {
+      formData.delete("tags");
+
+      const tagsArray = tagsValue
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      tagsArray.forEach((tag) => {
+        formData.append("tags", tag);
+      });
+    }
+
     const validation = await validateFormData(formData, ProjectsSchema);
     if (!validation.success) {
       return validation.response;
     }
 
     const { title, description, repoUrl, liveUrl, tags }: ProjectType =
-      validation.data;
+      validation.data; // Ensure we have a valid authorId - should always be true due to requireAuth check
+    if (!session?.user?.id) {
+      return createErrorResponse(
+        "Authentication error",
+        { auth: ["User ID not found in session"] },
+        401
+      );
+    }
+
     const newProject = await prisma.project.create({
       data: {
         title,
@@ -143,7 +165,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         tags: {
           set: tags,
         },
-        authorId: session!.user.id,
+        authorId: session.user.id,
       },
     });
 

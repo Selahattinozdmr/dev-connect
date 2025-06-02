@@ -16,6 +16,63 @@
   ],
   "components": {
     "schemas": {
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "title": {
+            "type": "string",
+            "example": "Developer Connect Platform"
+          },
+          "description": {
+            "type": "string",
+            "example": "A social network for developers to connect and share projects"
+          },
+          "repoUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://github.com/username/project-repo"
+          },
+          "liveUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://project-demo.example.com"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["React", "TypeScript", "Node.js"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authorId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "author": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "createdAt",
+          "updatedAt",
+          "authorId"
+        ]
+      },
       "User": {
         "type": "object",
         "properties": {
@@ -151,7 +208,7 @@
     }
   ],
   "paths": {
-    "/auth/register":{
+    "/auth/register": {
       "post": {
         "summary": "Create new user",
         "description": "Create a new user account (typically handled by Auth.js)",
@@ -160,7 +217,7 @@
         "requestBody": {
           "required": true,
           "content": {
-           "multipart/form-data": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
@@ -473,7 +530,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"            }
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -601,6 +659,260 @@
           },
           "404": {
             "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "summary": "Get paginated list of projects",
+        "description": "Retrieves a paginated list of projects with optional filtering, sorting and search",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term for filtering projects across title, description and technologies"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            },
+            "description": "Number of projects per page"
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "createdAt",
+              "enum": ["createdAt", "title", "updatedAt"]
+            },
+            "description": "Field to sort by"
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "desc",
+              "enum": ["asc", "desc"]
+            },
+            "description": "Sort direction (asc/desc)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Projects fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "projects": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Project"
+                              }
+                            },
+                            "meta": {
+                              "type": "object",
+                              "properties": {
+                                "total": {
+                                  "type": "integer",
+                                  "description": "Total number of projects"
+                                },
+                                "pages": {
+                                  "type": "integer",
+                                  "description": "Total number of pages"
+                                },
+                                "page": {
+                                  "type": "integer",
+                                  "description": "Current page number"
+                                },
+                                "limit": {
+                                  "type": "integer",
+                                  "description": "Number of projects per page"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No projects found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new project",
+        "description": "Creates a new project for the authenticated user",
+        "tags": ["Projects"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Dev Connect Frontend"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Frontend implementation of the Developer Connection platform"
+                  },
+                  "repoUrl": {
+                    "type": "string",
+                    "example": "https://github.com/username/dev-connect-frontend"
+                  },
+                  "liveUrl": {
+                    "type": "string",
+                    "example": "https://dev-connect-demo.vercel.app"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["React", "TypeScript", "Tailwind CSS"]
+                  }
+                },
+                "required": ["title", "description"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Project"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Project with same title already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {

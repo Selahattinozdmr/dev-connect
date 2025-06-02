@@ -40,7 +40,7 @@ export const UserSchema=z.object({
 export type UserType=z.infer<typeof UserSchema>
 
 export const ProjectsSchema = z.object({
-    id: z.string(),
+    id: z.string().optional(),
     title: z.string().min(3, "Title must be at least 3 characters"),
     description: z.string().min(10, "Description must be at least 10 characters"),
     repoUrl: z.string().url("Invalid repository URL").optional().nullable(),
@@ -48,7 +48,7 @@ export const ProjectsSchema = z.object({
     tags: z.array(z.string()).min(1, "At least one tag is required"),
     createdAt: z.coerce.date().optional(),
     updatedAt: z.coerce.date().optional(),
-    authorId: z.string(),
+    authorId: z.string().optional(),
     author: z.object({
         id: z.string(),
         name: z.string(),
