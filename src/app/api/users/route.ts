@@ -76,7 +76,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           username: true,
           createdAt: true,
           updatedAt: true,
-          avatarUrl: true,
         },
       }),
       prisma.user.count({ where }),
