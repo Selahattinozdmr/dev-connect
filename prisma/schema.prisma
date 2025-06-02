@@ -20,15 +20,10 @@ model User {
   username      String    @unique
   email         String    @unique
   password      String?
-  bio           String?
-  avatarUrl     String?
-  location      String?
-  website       String?
-  githubUrl     String?
-  linkedinUrl   String?
   role          String    @default("USER") // USER, ADMIN, etc.
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  profile       Profile?
   projects      Project[] 
   comments      Comment[]
   likes         Like[]
@@ -37,6 +32,19 @@ model User {
   notifications Notification[]
   sessions      Session[]
   accounts      Account[]
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  bio          String?
+  avatarUrl    String?
+  skills       String[]
+  location     String?
+  website      String?
+  githubUrl    String?
+  linkedinUrl  String?
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
 }
 
 model Project {
