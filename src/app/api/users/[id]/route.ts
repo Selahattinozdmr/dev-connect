@@ -74,16 +74,16 @@ export async function PUT(
     const authError = requireAuth(session);
     if (authError) return authError;
 
-   
-
     const userId = (await params).id;
-    console.log("userID",userId)
+    console.log("userID", userId);
 
     // At this point we know session is not null because requireAuth would have returned an error
-    const ownershipError = verifyOwnership(session!.user?.id, userId, session!.user?.role);
+    const ownershipError = verifyOwnership(
+      session!.user?.id,
+      userId,
+      session!.user?.role
+    );
     if (ownershipError) return ownershipError;
-    
-  
 
     const formData = await req.formData();
     const validation = await validateFormData(formData, UserSchema);
@@ -95,7 +95,12 @@ export async function PUT(
       name,
       email,
       username,
-   
+      location,
+      avatarUrl,
+      bio,
+      website,
+      githubUrl,
+      linkedinUrl,
     }: UserType = validation.data;
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -103,11 +108,23 @@ export async function PUT(
         name,
         email,
         username,
+        location,
+        avatarUrl,
+        bio,
+        website,
+        githubUrl,
+        linkedinUrl,
       },
       select: {
         id: true,
         name: true,
         email: true,
+        bio: true,
+        avatarUrl: true,
+        location: true,
+        website: true,
+        githubUrl: true,
+        linkedinUrl: true,
         username: true,
         createdAt: true,
         updatedAt: true,
@@ -168,7 +185,11 @@ export async function DELETE(
 
     const userId = (await params).id;
 
-    const ownershipError = verifyOwnership(session!.user?.id, userId, session!.user?.role);
+    const ownershipError = verifyOwnership(
+      session!.user?.id,
+      userId,
+      session!.user?.role
+    );
     if (ownershipError) return ownershipError;
 
     const deletedUser = await prisma.user.delete({
@@ -176,7 +197,7 @@ export async function DELETE(
       select: USER_SELECT_FIELDS,
     });
 
-    return createSuccessResponse(deletedUser,"User deleted successfully", 200);
+    return createSuccessResponse(deletedUser, "User deleted successfully", 200);
   } catch (error) {
     console.error("Error deleting user:", error);
 
