@@ -21,6 +21,22 @@ export const buildUserSearchConditions=(
     };
 }
 
+export const buildProjectSearchConditions=(
+    search: string|null
+):Prisma.ProjectWhereInput=>{
+    if(!search || search.trim()===''){
+        return {};
+    }
+    return {
+        OR:[
+            {title:{contains:search,mode:Prisma.QueryMode.insensitive}},
+            {description:{contains:search,mode:Prisma.QueryMode.insensitive}},
+        ],
+    };
+}
+
+
+
 /**
  * Creates pagination parameters for Prisma queries
  * @param page - Current page number

@@ -38,3 +38,23 @@ export const UserSchema=z.object({
     updatedAt:z.coerce.date().optional()
 })
 export type UserType=z.infer<typeof UserSchema>
+
+export const ProjectsSchema = z.object({
+    id: z.string(),
+    title: z.string().min(3, "Title must be at least 3 characters"),
+    description: z.string().min(10, "Description must be at least 10 characters"),
+    repoUrl: z.string().url("Invalid repository URL").optional().nullable(),
+    liveUrl: z.string().url("Invalid live URL").optional().nullable(),
+    tags: z.array(z.string()).min(1, "At least one tag is required"),
+    createdAt: z.coerce.date().optional(),
+    updatedAt: z.coerce.date().optional(),
+    authorId: z.string(),
+    author: z.object({
+        id: z.string(),
+        name: z.string(),
+        username: z.string(),
+        avatarUrl: z.string().optional().nullable()
+    }).optional()
+})
+
+export type ProjectType = z.infer<typeof ProjectsSchema>
