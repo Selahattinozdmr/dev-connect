@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\Selahattin\\Documents\\software\\web\\dev-connect\\logs\\.fa29499a821c0811a9eea6aee6244251d1450075-audit.json",
+    "files": [
+        {
+            "date": 1750196974551,
+            "name": "C:\\Users\\Selahattin\\Documents\\software\\web\\dev-connect\\logs\\application-2025-06-18.log",
+            "hash": "34a648cab7e3c1412f4359d901fe45156213744bf5489d137543a8ada7e872ef"
+        }
+    ],
+    "hashType": "sha256"
+}
