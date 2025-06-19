@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Dev Connect API",
-    "description": "API for developer-focused social network platform",
+    "description": "API for developer-focused social network platform where users can create profiles, showcase projects, and connect with other developers.",
     "version": "1.0.0",
     "contact": {
       "name": "Dev Connect Team"
@@ -31,6 +31,14 @@
             "type": "string",
             "format": "date-time"
           },
+          "authorId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
           "author": {
             "type": "object",
             "properties": {
@@ -39,11 +47,25 @@
               },
               "name": {
                 "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "nullable": true
               }
             }
           }
         },
-        "required": ["id", "content", "createdAt", "author"]
+        "required": [
+          "id",
+          "content",
+          "createdAt",
+          "authorId",
+          "projectId",
+          "author"
+        ]
       },
       "Project": {
         "type": "object",
@@ -97,12 +119,32 @@
             "items": {
               "$ref": "#/components/schemas/Comment"
             }
+          },
+          "likes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Like"
+            }
+          },
+          "_count": {
+            "type": "object",
+            "properties": {
+              "likes": {
+                "type": "integer",
+                "example": 42
+              },
+              "comments": {
+                "type": "integer",
+                "example": 7
+              }
+            }
           }
         },
         "required": [
           "id",
           "title",
           "description",
+          "tags",
           "createdAt",
           "updatedAt",
           "authorId"
@@ -116,38 +158,52 @@
             "example": "cmas2xbuy0000tf8cp8h37lgl"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "example": "Jane Developer"
           },
           "email": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "example": "jane@example.com"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "example": "janedev"
           },
           "bio": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "Full-stack developer passionate about TypeScript"
           },
           "avatarUrl": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "https://example.com/avatar.jpg"
           },
           "location": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "San Francisco, CA"
           },
           "website": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "https://janedev.com"
           },
           "githubUrl": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "https://github.com/janedev"
           },
           "linkedinUrl": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "https://linkedin.com/in/janedev"
+          },
+          "role": {
+            "type": "string",
+            "example": "USER",
+            "default": "USER"
           },
           "createdAt": {
             "type": "string",
@@ -156,6 +212,23 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "_count": {
+            "type": "object",
+            "properties": {
+              "followers": {
+                "type": "integer",
+                "example": 125
+              },
+              "following": {
+                "type": "integer",
+                "example": 45
+              },
+              "projects": {
+                "type": "integer",
+                "example": 12
+              }
+            }
           }
         },
         "required": [
@@ -163,27 +236,111 @@
           "name",
           "email",
           "username",
+          "role",
           "createdAt",
           "updatedAt"
         ]
+      },
+      "Like": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lxx"
+          },
+          "userId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": ["id", "userId", "projectId", "createdAt"]
+      },
+      "Follow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lzz"
+          },
+          "followerId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "followingId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "follower": {
+            "$ref": "#/components/schemas/User"
+          },
+          "following": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": ["id", "followerId", "followingId", "createdAt"]
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37laa"
+          },
+          "type": {
+            "type": "string",
+            "example": "LIKE",
+            "enum": ["LIKE", "COMMENT", "FOLLOW"]
+          },
+          "message": {
+            "type": "string",
+            "example": "User liked your project"
+          },
+          "isRead": {
+            "type": "boolean",
+            "example": false
+          },
+          "userId": {
+            "type": "string",
+            "example": "cmas2xbuy0000tf8cp8h37lgl"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "type", "message", "isRead", "userId", "createdAt"]
       },
       "ApiResponse": {
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": true
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "example": "Operation successful"
           },
           "data": {
             "type": "object"
-          },
-          "status": {
-            "type": "integer"
           }
         },
-        "required": ["success", "status"]
+        "required": ["success", "message"]
       },
       "ErrorResponse": {
         "type": "object",
@@ -192,29 +349,76 @@
             "type": "boolean",
             "example": false
           },
-          "error": {
-            "type": "object",
-            "properties": {
-              "name": {
+          "message": {
+            "type": "string",
+            "example": "Error message"
+          },
+          "errors": {
+            "oneOf": [
+              {
                 "type": "string"
               },
-              "message": {
-                "oneOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "object"
-                  }
-                ]
+              {
+                "type": "object"
               }
-            }
-          },
-          "status": {
-            "type": "integer"
+            ]
           }
         },
-        "required": ["success", "error", "status"]
+        "required": ["success", "message"]
+      },
+      "PaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Data retrieved successfully"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  "totalItems": {
+                    "type": "integer",
+                    "example": 47
+                  },
+                  "totalPages": {
+                    "type": "integer",
+                    "example": 5
+                  },
+                  "hasNextPage": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "hasPrevPage": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["success", "data"]
       }
     },
     "parameters": {
@@ -225,7 +429,77 @@
         "schema": {
           "type": "string"
         },
-        "description": "User ID (UUID format)",
+        "description": "User ID (CUID format)",
+        "example": "cmas2xbuy0000tf8cp8h37lgl"
+      },
+      "projectIdParam": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Project ID (CUID format)",
+        "example": "cmas2xbuy0000tf8cp8h37lgl"
+      },
+      "pageParam": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 1
+        },
+        "description": "Page number for pagination"
+      },
+      "limitParam": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 10
+        },
+        "description": "Number of items per page"
+      },
+      "sortByParam": {
+        "name": "sortBy",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "default": "createdAt"
+        },
+        "description": "Field to sort by"
+      },
+      "sortOrderParam": {
+        "name": "sortOrder",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "desc"
+        },
+        "description": "Sort direction (asc/desc)"
+      },
+      "searchParam": {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Search term for filtering results"
+      },
+      "commentIdParam": {
+        "name": "commentId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Comment ID (CUID format)",
         "example": "cmas2xbuy0000tf8cp8h37lgl"
       }
     },
@@ -245,9 +519,9 @@
   "paths": {
     "/auth/register": {
       "post": {
-        "summary": "Create new user",
-        "description": "Create a new user account (typically handled by Auth.js)",
-        "tags": ["Users"],
+        "summary": "Register new user",
+        "description": "Create a new user account with full profile details",
+        "tags": ["Auth"],
         "security": [],
         "requestBody": {
           "required": true,
@@ -282,6 +556,56 @@
                     "type": "string",
                     "format": "binary",
                     "description": "User profile image"
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "San Francisco, CA"
+                  },
+                  "website": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "githubUrl": {
+                    "type": "string",
+                    "example": "https://github.com/johndoe"
+                  },
+                  "linkedinUrl": {
+                    "type": "string",
+                    "example": "https://linkedin.com/in/johndoe"
+                  }
+                },
+                "required": ["name", "email", "username", "password"]
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                  },
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "Password123!"
+                  },
+                  "bio": {
+                    "type": "string",
+                    "example": "Full-stack developer passionate about TypeScript"
+                  },
+                  "avatarUrl": {
+                    "type": "string",
+                    "example": "https://example.com/avatar.jpg"
                   },
                   "location": {
                     "type": "string",
@@ -514,12 +838,7 @@
         "tags": ["Users"],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/userIdParam"
           }
         ],
         "responses": {
@@ -561,12 +880,7 @@
         "tags": ["Users"],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/userIdParam"
           }
         ],
         "requestBody": {
@@ -575,38 +889,78 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "User ID (UUID format)",
-                    "example": "cmas2xbuy0000tf8cp8h37lgl"
-                  },
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Jane Updated"
+                  },
+                  "bio": {
+                    "type": "string",
+                    "example": "Updated bio information"
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "User profile image"
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "New York, NY"
+                  },
+                  "website": {
+                    "type": "string",
+                    "example": "https://janedoe-updated.com"
+                  },
+                  "githubUrl": {
+                    "type": "string",
+                    "example": "https://github.com/janedoe-updated"
+                  },
+                  "linkedinUrl": {
+                    "type": "string",
+                    "example": "https://linkedin.com/in/janedoe-updated"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Jane Updated"
                   },
                   "email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "example": "jane-updated@example.com"
                   },
                   "username": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "janedoe-updated"
                   },
                   "bio": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Updated bio information"
                   },
                   "avatarUrl": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://example.com/updated-avatar.jpg"
                   },
                   "location": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "New York, NY"
                   },
                   "website": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://janedoe-updated.com"
                   },
                   "githubUrl": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://github.com/janedoe-updated"
                   },
                   "linkedinUrl": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://linkedin.com/in/janedoe-updated"
                   }
                 }
               }
@@ -712,14 +1066,7 @@
         "tags": ["Projects"],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Project ID (UUID format)",
-            "example": "cmas2xbuy0000tf8cp8h37lgl"
+            "$ref": "#/components/parameters/projectIdParam"
           }
         ],
         "responses": {
@@ -792,14 +1139,7 @@
         "tags": ["Projects"],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Project ID (UUID format)",
-            "example": "cmas2xbuy0000tf8cp8h37lgl"
+            "$ref": "#/components/parameters/projectIdParam"
           }
         ],
         "requestBody": {
@@ -917,14 +1257,7 @@
         "tags": ["Projects"],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Project ID (UUID format)",
-            "example": "cmas2xbuy0000tf8cp8h37lgl"
+            "$ref": "#/components/parameters/projectIdParam"
           }
         ],
         "responses": {
@@ -1184,6 +1517,42 @@
                       "type": "string"
                     },
                     "example": ["React", "TypeScript", "Tailwind CSS"]
+                  },
+                  "coverImage": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Project cover image"
+                  }
+                },
+                "required": ["title", "description"]
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Dev Connect Frontend"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Frontend implementation of the Developer Connection platform"
+                  },
+                  "repoUrl": {
+                    "type": "string",
+                    "example": "https://github.com/username/dev-connect-frontend"
+                  },
+                  "liveUrl": {
+                    "type": "string",
+                    "example": "https://dev-connect-demo.vercel.app"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["React", "TypeScript", "Tailwind CSS"]
                   }
                 },
                 "required": ["title", "description"]
@@ -1245,6 +1614,536 @@
           },
           "500": {
             "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/like": {
+      "post": {
+        "summary": "Like a project",
+        "description": "Allows authenticated users to like a specific project",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectIdParam"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Like created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "description": "Project ID",
+                              "example": "cmas2xbuy0000tf8cp8h37lgl"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "example": {
+                    "success": true,
+                    "message": "Like created successfully",
+                    "data": {
+                      "id": "cmas2xbuy0000tf8cp8h37lgl"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project ID format or database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User has already liked this project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Like already exists",
+                  "errors": "User has already liked this project"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/comments": {
+      "get": {
+        "summary": "Get project comments",
+        "description": "Retrieves all comments for a specific project",
+        "tags": ["Comments"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/pageParam"
+          },
+          {
+            "$ref": "#/components/parameters/limitParam"
+          },
+          {
+            "$ref": "#/components/parameters/sortByParam"
+          },
+          {
+            "$ref": "#/components/parameters/sortOrderParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comments retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "properties": {
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Comment"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project ID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a comment",
+        "description": "Creates a new comment on a specific project",
+        "tags": ["Comments"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "example": "This is a great project! I love the UI design."
+                  }
+                },
+                "required": ["content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Comment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/unlike": {
+      "delete": {
+        "summary": "Unlike a project",
+        "description": "Allows authenticated users to unlike a project they previously liked",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Like deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "description": "Project ID",
+                              "example": "cmas2xbuy0000tf8cp8h37lgl"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "example": {
+                    "success": true,
+                    "message": "Like deleted successfully",
+                    "data": {
+                      "id": "cmas2xbuy0000tf8cp8h37lgl"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project ID format or database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found or like not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Like not found",
+                  "errors": "Like not found for this project"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/{commentId}": {
+      "put": {
+        "summary": "Update a comment",
+        "description": "Updates an existing comment (only available to the comment author)",
+        "tags": ["Comments"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/commentIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "example": "Updated comment content"
+                  }
+                },
+                "required": ["content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Comment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - User doesn't own this comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comment not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a comment",
+        "description": "Deletes a comment by its ID (only available to the comment author or project owner)",
+        "tags": ["Comments"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/commentIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "cmas2xbuy0000tf8cp8h37lgl"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "example": {
+                    "success": true,
+                    "message": "Comment deleted successfully",
+                    "data": {
+                      "id": "cmas2xbuy0000tf8cp8h37lgl"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid comment ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - User doesn't have permission to delete this comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comment not found",
             "content": {
               "application/json": {
                 "schema": {

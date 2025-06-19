@@ -1,0 +1,8 @@
+{"context":{"path":"/api/projects/cmbfcbcux0001tfa0uo4qlonh/like","projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"info","message":"Processing POST like for project by ID request","service":"dev-connect","timestamp":"2025-06-20 00:59:48"}
+{"context":{"durationMs":23,"projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"debug","message":"Valid project ID format for POST and project found","service":"dev-connect","timestamp":"2025-06-20 00:59:48"}
+{"context":{"durationMs":29,"projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"debug","message":"Like created successfully","service":"dev-connect","timestamp":"2025-06-20 00:59:48"}
+{"context":{"projectId":"cmbfcbcux0001tfa0uo4qlonh","userId":"cmbe4t5hq0000tfws3hwm91ku"},"level":"info","message":"Like for project by ID created successfully","service":"dev-connect","timestamp":"2025-06-20 00:59:48"}
+{"context":{"path":"/api/projects/cmbfcbcux0001tfa0uo4qlonh/unlike","projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"info","message":"Processing DELETE project by ID request","service":"dev-connect","timestamp":"2025-06-20 01:00:54"}
+{"context":{"durationMs":14,"projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"debug","message":"Valid project ID format for DELETE and project found","service":"dev-connect","timestamp":"2025-06-20 01:00:54"}
+{"context":{"durationMs":15,"projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"debug","message":"Like deleted successfully","service":"dev-connect","timestamp":"2025-06-20 01:00:54"}
+{"context":{"projectId":"cmbfcbcux0001tfa0uo4qlonh","userId":"cmbe4t5hq0000tfws3hwm91ku"},"level":"info","message":"Like by ID deleted successfully","service":"dev-connect","timestamp":"2025-06-20 01:00:54"}
