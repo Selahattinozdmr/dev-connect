@@ -7,17 +7,31 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from "@/utils/api-helpers";
+import logger from "@/utils/logger";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    logger.info("Processing POST registration request", {
+      path: req.nextUrl.pathname,
+    });
+
     const formData = await req.formData();
     const validation = await validateFormData(formData, registerSchema);
 
     if (!validation.success) {
+      logger.warn("Registration validation failed", {
+        errors: "Validation failed",
+      });
       return validation.response;
     }
     const { name, email, password, username }: RegisterFormData =
       validation.data;
+
+    logger.info("Registration data validated successfully", {
+      user: { name, email, username },
+    });
+
+    const startTime = performance.now();
 
     const existingUser = await prisma.user.findFirst({
       where: {
@@ -25,7 +39,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
 
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed existing user", {
+      durationMs: Math.round(duration),
+      path: req.nextUrl.pathname,
+    });
+
     if (existingUser) {
+      logger.warn("User already exists", {
+        email: existingUser.email,
+        username: existingUser.username,
+      });
       return createErrorResponse(
         "User already exists",
         { field: existingUser.email === email ? "email" : "username" },
@@ -35,6 +59,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    const startTime1 = performance.now();
+
     const newUser = await prisma.user.create({
       data: {
         name,
@@ -50,9 +77,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         username: true,
       },
     });
+
+    const duration1 = performance.now() - startTime1;
+    logger.debug("Database query completed create user", {
+      durationMs: Math.round(duration1),
+      path: req.nextUrl.pathname,
+    });
+
+    logger.info("User registered successfully", {
+      userId: newUser.id,
+      email: newUser.email,
+      username: newUser.username,
+    });
+
     return createSuccessResponse(newUser, "User created successfully", 201);
   } catch (error: unknown) {
-    console.error("Registration Error: ", error);
+    logger.error("Error fetching me: in path " + req.nextUrl.pathname, {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
     if (error instanceof Error) {
       if (error.message.includes("Unique constraint failed")) {
         return createErrorResponse(

@@ -13,6 +13,7 @@ import {
   createPaginationMeta,
   getPaginationParams,
 } from "@/utils/search-helpers";
+import logger from "@/utils/logger";
 
 /**
  * Retrieves a paginated list of users with optional filtering and sorting
@@ -38,9 +39,19 @@ type UsersResponse = {
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    logger.info("Processing GET users request", {
+      path: req.nextUrl.pathname,
+      query: Object.fromEntries(new URL(req.url).searchParams.entries()),
+    });
+
     const session = await auth();
-    // const authError = requireAuth(session);
-    // if (authError) return authError;
+    const authError = requireAuth(session);
+    if (authError) {
+      logger.warn("Authentication failed for users request", {
+        userId: session?.user?.id || "anonymous",
+      });
+      return authError;
+    }
 
     const url: URL = new URL(req.url);
 
@@ -48,6 +59,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const validationResult = QuerySchema.safeParse(rawParams);
 
     if (!validationResult.success) {
+      logger.warn("Invalid query parameters", {
+        userId: session?.user?.id || "anonymous",
+        errors: validationResult.error.flatten().fieldErrors,
+      });
       return createErrorResponse(
         "Invalid query parameters",
         validationResult.error.flatten().fieldErrors,
@@ -60,6 +75,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const where = buildUserSearchConditions(search as string);
     const { skip, take } = getPaginationParams(page, limit);
+
+    const startTime = performance.now();
 
     const [users, totalCount] = await Promise.all([
       prisma.user.findMany({
@@ -81,7 +98,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       }),
       prisma.user.count({ where }),
     ]);
+
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed", {
+      userId: session?.user?.id || "anonymous",
+      durationMs: Math.round(duration),
+      search,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     if (!users || (users.length === 0 && page > 1)) {
+      logger.warn("No users found", {
+        userId: session?.user?.id || "anonymous",
+        search,
+        page,
+        limit,
+      });
       return createErrorResponse("No users found", "No users found", 404);
     }
 
@@ -95,6 +130,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     headers.set("Cache-Control", cacheControl);
 
+    logger.info("Users fetched successfully", {
+      userId: session?.user?.id || "anonymous",
+      userCount: users.length,
+    });
+
     return createSuccessResponse<UsersResponse>(
       {
         users,
@@ -104,7 +144,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       200
     );
   } catch (error) {
-    console.error("API Error in GET /api/users: ", error);
+    logger.error("Error processing GET users request", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return createErrorResponse("Database error", error.message, 400);
     }

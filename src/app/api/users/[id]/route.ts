@@ -10,6 +10,7 @@ import {
   verifyOwnership,
 } from "@/utils/api-helpers";
 import { validateFormData } from "@/utils/validation-helpers";
+import logger from "@/utils/logger";
 
 /**
  * Get user by ID endpoint
@@ -23,11 +24,32 @@ export async function GET(
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
+    const userId = (await params).id;
+
+    logger.info("Processing GET user by ID request", {
+      userId,
+      path: req.nextUrl.pathname,
+    });
+
     const session = await auth();
     const authError = requireAuth(session);
-    if (authError) return authError;
+    if (authError) {
+      logger.warn("Authentication failed for user by id request", {
+        userId: session?.user?.id || "anonymous",
+      });
+      return authError;
+    }
 
-    const userId = (await params).id;
+    if (!userId || typeof userId !== "string") {
+      logger.warn("Invalid user ID format", { userId });
+      return createErrorResponse(
+        "Invalid user ID",
+        "User ID must be a valid string",
+        400
+      );
+    }
+
+    const startTime = performance.now();
 
     const userProfile = await prisma.user.findUnique({
       where: { id: userId },
@@ -40,12 +62,24 @@ export async function GET(
         updatedAt: true,
       },
     });
+
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed get user by id", {
+      userId: session?.user?.id || "anonymous",
+      durationMs: Math.round(duration),
+    });
+
     if (!userProfile) {
+      logger.warn("User not found", { userId });
       return createErrorResponse("User not found", "User not found", 404);
     }
+    logger.info("User fetched successfully", { userId });
     return createSuccessResponse(userProfile, "User fetched successfully", 200);
   } catch (error) {
-    console.error("Error fetching user:", error);
+    logger.error("Error fetching user:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return createErrorResponse("Database error", error.message, 400);
     }
@@ -69,25 +103,44 @@ export async function PUT(
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
+    const userId = (await params).id;
+
+    logger.info("Processing PUT user by ID request", {
+      userId,
+      path: req.nextUrl.pathname,
+    });
     const session = await auth();
 
     const authError = requireAuth(session);
-    if (authError) return authError;
-
-    const userId = (await params).id;
-    console.log("userID", userId);
+    if (authError) {
+      logger.warn("Authentication failed for user by id request", {
+        userId: session?.user?.id || "anonymous",
+      });
+      return authError;
+    }
 
     // At this point we know session is not null because requireAuth would have returned an error
     const ownershipError = verifyOwnership(
-      session!.user?.id,
+      session?.user?.id,
       userId,
-      session!.user?.role
+      session?.user?.role
     );
-    if (ownershipError) return ownershipError;
+    if (ownershipError) {
+      logger.warn("Ownership verification failed", {
+        requesterId: session?.user?.id,
+        targetUserId: userId,
+        role: session?.user?.role,
+      });
+      return ownershipError;
+    }
 
     const formData = await req.formData();
     const validation = await validateFormData(formData, UserSchema);
     if (!validation.success) {
+      logger.warn("Validation failed for user update", {
+        userId,
+        errors: "Validation failed",
+      });
       return validation.response;
     }
 
@@ -102,6 +155,9 @@ export async function PUT(
       githubUrl,
       linkedinUrl,
     }: UserType = validation.data;
+
+    const startTime = performance.now();
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -131,9 +187,19 @@ export async function PUT(
       },
     });
 
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed for update user by id", {
+      userId: session?.user?.id || "anonymous",
+      durationMs: Math.round(duration),
+    });
+
+    logger.info("User updated successfully", { userId });
     return createSuccessResponse(updatedUser, "User updated successfully", 200);
   } catch (error) {
-    console.error("Error updating user:", error);
+    logger.error("Error updating user:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       // Handle unique constraint violations
       if (error.code === "P2002") {
@@ -178,29 +244,63 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
+    const userId = (await params).id;
+
+    logger.info("Processing DELETE user by ID request", {
+      userId,
+      path: req.nextUrl.pathname,
+    });
+
     const session = await auth();
     const authError = requireAuth(session);
 
-    if (authError) return authError;
-
-    const userId = (await params).id;
+    if (authError) {
+      logger.warn("Authentication failed for user request", {
+        userId: session?.user?.id || "anonymous",
+      });
+      return authError;
+    }
 
     const ownershipError = verifyOwnership(
-      session!.user?.id,
+      session?.user?.id,
       userId,
-      session!.user?.role
+      session?.user?.role
     );
-    if (ownershipError) return ownershipError;
+    if (ownershipError) {
+      logger.warn("Ownership verification failed", {
+        requesterId: session?.user?.id,
+        targetUserId: userId,
+        role: session?.user?.role,
+      });
+      return ownershipError;
+    }
+
+    const startTime = performance.now();
 
     const deletedUser = await prisma.user.delete({
       where: { id: userId },
       select: USER_SELECT_FIELDS,
     });
 
+    if (!deletedUser) {
+      logger.warn("User not found for deletion", { userId });
+      return createErrorResponse("User not found", "User not found", 404);
+    }
+
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed for delete user", {
+      userId: session?.user?.id || "anonymous",
+      durationMs: Math.round(duration),
+    });
+
+    logger.info("User deleted successfully", { userId });
+
     return createSuccessResponse(deletedUser, "User deleted successfully", 200);
   } catch (error) {
-    console.error("Error deleting user:", error);
-
+    logger.error("Error deleting user:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2025") {
         return createErrorResponse(

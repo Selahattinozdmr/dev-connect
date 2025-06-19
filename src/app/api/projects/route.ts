@@ -4,6 +4,7 @@ import {
   createSuccessResponse,
   requireAuth,
 } from "@/utils/api-helpers";
+import logger from "@/utils/logger";
 import { prisma } from "@/utils/prisma";
 import {
   buildProjectSearchConditions,
@@ -32,14 +33,28 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    logger.info("Processing GET projects request", {
+      path: req.nextUrl.pathname,
+      query: Object.fromEntries(new URL(req.url).searchParams.entries()),
+    });
+
     const session = await auth();
     const authError = requireAuth(session);
-    if (authError) return authError;
+    if (authError) {
+      logger.warn("Authentication failed for projects request", {
+        userId: session?.user?.id || "anonymous",
+      });
+      return authError;
+    }
 
     const url: URL = new URL(req.url);
     const rawParams = Object.fromEntries(url.searchParams.entries());
     const validationResult = QuerySchema.safeParse(rawParams);
     if (!validationResult.success) {
+      logger.warn("Invalid query parameters", {
+        userId: session?.user?.id || "anonymous",
+        errors: validationResult.error.flatten().fieldErrors,
+      });
       return createErrorResponse(
         "Invalid query parameters",
         validationResult.error.flatten().fieldErrors,
@@ -52,6 +67,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const where = buildProjectSearchConditions(searchTerm);
     const { skip, take } = getPaginationParams(page, limit);
 
+    const startTime = performance.now();
+
     const [projects, totalCount] = await Promise.all([
       prisma.project.findMany({
         where,
@@ -63,17 +80,45 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       }),
       prisma.project.count({ where }),
     ]);
+
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed", {
+      userId: session?.user?.id || "anonymous",
+      durationMs: Math.round(duration),
+      search,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     if (!projects || (projects.length === 0 && page > 1)) {
+      logger.warn("No projects found for the given criteria", {
+        search,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      });
       return createErrorResponse("No projects found", "No projects found", 404);
     }
     const meta = createPaginationMeta(page, limit, totalCount);
+
+    logger.info("Projects fetched successfully", {
+      userId: session?.user?.id,
+      projectCount: projects.length,
+    });
+
     return createSuccessResponse(
       { projects, meta },
       "Projects fetched successfully",
       200
     );
   } catch (error) {
-    console.error("API Error in GET /api/projects: ", error);
+    logger.error("Error processing GET projects request", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2001") {
         return createErrorResponse(

@@ -16,14 +16,14 @@ export async function GET(
   try {
     const projectId = (await params).id;
 
-    logger.info("Processing GET project request", {
+    logger.info("Processing GET project by id request", {
       projectId,
       path: req.nextUrl.pathname,
     });
     const session = await auth();
     const authError = requireAuth(session);
     if (authError) {
-      logger.warn("Authentication failed for project request", {
+      logger.warn("Authentication failed for project by id request", {
         projectId: params.id,
         userId: session?.user?.id || "anonymous",
       });
@@ -39,7 +39,7 @@ export async function GET(
       );
     }
 
-    logger.debug("Fetching project from database", { projectId });
+    const startTime = performance.now();
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -56,13 +56,18 @@ export async function GET(
         author: { select: { id: true, name: true, avatarUrl: true } },
       },
     });
+    const duration = performance.now() - startTime;
+    logger.debug("Database query completed for project by id", {
+      projectId,
+      durationMs: Math.round(duration),
+    });
 
     if (!project) {
-      logger.warn("Project not found", { projectId });
+      logger.warn("Project by id not found", { projectId });
       return createErrorResponse("Project not found", "Project not found", 404);
     }
 
-    logger.info("Project fetched successfully", {
+    logger.info("Project by id fetched successfully", {
       projectId,
       userId: session?.user?.id,
       commentCount: project.comments.length,

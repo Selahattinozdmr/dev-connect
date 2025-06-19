@@ -8,3 +8,5 @@
 {"context":{"projectId":"cmas2xbuy0000tf8cp8h37lgl"},"level":"warn","message":"Project not found","service":"dev-connect","timestamp":"2025-06-18 01:11:53"}
 {"context":{"path":"/api/projects/cmbfcbcux0001tfa0uo4qlonh","projectId":"cmbfcbcux0001tfa0uo4qlonh"},"level":"info","message":"Processing GET project request","service":"dev-connect","timestamp":"2025-06-18 01:18:30"}
 {"context":{"commentCount":0,"projectId":"cmbfcbcux0001tfa0uo4qlonh","userId":"cmbe4t5hq0000tfws3hwm91ku"},"level":"info","message":"Project fetched successfully","service":"dev-connect","timestamp":"2025-06-18 01:18:30"}
+{"context":{"path":"/api/users","query":{"limit":"10","page":"1"}},"level":"info","message":"Processing GET users request","service":"dev-connect","timestamp":"2025-06-18 22:22:19"}
+{"context":{"userCount":5,"userId":"cmbe4t5hq0000tfws3hwm91ku"},"level":"info","message":"Users fetched successfully","service":"dev-connect","timestamp":"2025-06-18 22:22:19"}
