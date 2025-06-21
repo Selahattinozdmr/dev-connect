@@ -165,9 +165,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    logger.info("Processing POST projects request", {
+      path: req.nextUrl.pathname,
+    });
     const session = await auth();
     const authError = requireAuth(session);
-    if (authError) return authError;
+    if (authError) {
+      logger.warn("Authentication failed for projects POST request", {
+        userId: session?.user?.id || "anonymous",
+      });
+      return authError;
+    }
 
     const formData = await req.formData();
 
@@ -188,19 +196,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const validation = await validateFormData(formData, ProjectsSchema);
     if (!validation.success) {
+      logger.warn("Validation failed for POST projects request", {
+        userId: session?.user?.id || "anonymous",
+        errors: "Validation error for project",
+      });
       return validation.response;
     }
 
     const { title, description, repoUrl, liveUrl, tags }: ProjectType =
       validation.data; // Ensure we have a valid authorId - should always be true due to requireAuth check
     if (!session?.user?.id) {
+      logger.warn("User ID not found in session", {
+        userId: "unknown",
+        operation: "create project",
+      });
       return createErrorResponse(
         "Authentication error",
         { auth: ["User ID not found in session"] },
         401
       );
     }
-
+    const startTime = performance.now();
     const newProject = await prisma.project.create({
       data: {
         title,
@@ -213,14 +229,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         authorId: session.user.id,
       },
     });
-
+    const duration = performance.now() - startTime;
+    logger.debug("Created new project", {
+      userId: session.user.id,
+      projectId: newProject.id,
+      durationMs: Math.round(duration),
+      title: newProject.title,
+    });
+   
     return createSuccessResponse(
       newProject,
       "Project created successfully",
       201
     );
   } catch (error) {
-    console.error("API Error in POST /api/projects: ", error);
+    logger.error("Error processing POST projects request", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+    });
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") {
@@ -233,11 +259,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       // Handle other Prisma errors
       return createErrorResponse("Database error", error.message, 400);
-    }
-
-    if (error instanceof Error) {
-      // Log detailed error but return safe message
-      console.error(`Project creation error details: ${error.stack}`);
     }
 
     return createErrorResponse(

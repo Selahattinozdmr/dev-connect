@@ -58,3 +58,23 @@ export const ProjectsSchema = z.object({
 })
 
 export type ProjectType = z.infer<typeof ProjectsSchema>
+
+export const CommentSchema = z.object({
+    id: z.string().optional(),
+    content: z.string().min(1, "Comment content cannot be empty"),
+    createdAt: z.coerce.date().optional(),
+    authorId: z.string().optional(),
+    projectId: z.string().optional(),
+    author: z.object({
+        id: z.string(),
+        name: z.string(),
+        username: z.string(),
+        avatarUrl: z.string().optional().nullable()
+    }).optional(),
+    project: z.object({
+        id: z.string(),
+        title: z.string()
+    }).optional()
+})
+
+export type CommentType=z.infer<typeof CommentSchema>
