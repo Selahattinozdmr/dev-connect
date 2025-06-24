@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodSchema } from "zod";
 import { createErrorResponse } from "./api-helpers";
+import { SanitizationResult } from "./validation";
 
 /**
  * Validates request form data against a Zod schema
@@ -48,5 +49,43 @@ export const validateFormData = async <T>(
   return {
     success: true,
     data: result.data,
+  };
+};
+
+export const sanitizeId = (rawId: string): SanitizationResult => {
+  if (typeof rawId !== "string") {
+    return {
+      isValid: false,
+      sanitized: null,
+      error: "ID must be a string",
+    };
+  }
+  const trimmed = rawId.trim();
+  if (trimmed.length === 0) {
+    return {
+      isValid: false,
+      sanitized: null,
+      error: "ID cannot be empty",
+    };
+  }
+
+  const idPattern = /^[a-zA-Z0-9_-]+$/;
+  if (!idPattern.test(trimmed)) {
+    return {
+      isValid: false,
+      sanitized: null,
+      error: "ID contains invalid characters",
+    };
+  }
+  if (trimmed.length > 50) {
+    return {
+      isValid: false,
+      sanitized: null,
+      error: "ID is too long, maximum length is 50 characters",
+    };
+  }
+  return {
+    isValid: true,
+    sanitized: trimmed,
   };
 };

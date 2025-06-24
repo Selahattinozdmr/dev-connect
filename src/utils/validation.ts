@@ -78,3 +78,8 @@ export const CommentSchema = z.object({
 })
 
 export type CommentType=z.infer<typeof CommentSchema>
+export interface SanitizationResult {
+  isValid: boolean;
+  sanitized: string | null;
+  error?: string;
+}
